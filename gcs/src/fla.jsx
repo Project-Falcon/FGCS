@@ -14,6 +14,7 @@ import {
   FileButton,
   Progress,
   ScrollArea,
+  Tabs,
   Tooltip,
 } from '@mantine/core'
 
@@ -23,6 +24,7 @@ import tailwindConfig from '../tailwind.config.js'
 
 // Custom components and helpers
 import ChartDataCard from './components/fla/chartDataCard.jsx'
+import DroneFlightPath from './components/fla/droneFlightPath.jsx'
 import Graph from './components/fla/graph'
 import { dataflashOptions, fgcsOptions } from './components/fla/graphConfigs.js'
 import { logEventIds } from './components/fla/logEventIds.js'
@@ -82,6 +84,8 @@ export default function FLA() {
   const [logEvents, setLogEvents] = useState(null)
   const [flightModeMessages, setFlightModeMessages] = useState([])
   const [logType, setLogType] = useState('dastaflash')
+
+  const [gpsData, setGpsData] = useState({})
 
   const [messageFilters, setMessageFilters] = useState(null)
   const [messageMeans, setMessageMeans] = useState({})
@@ -191,6 +195,17 @@ export default function FLA() {
             })),
           )
         }
+
+        // Set gps data
+        setGpsData(
+          loadedLogMessages['POS'] && loadedLogMessages['POS'] !== undefined
+            ? loadedLogMessages['POS'].map((point) => ({
+                longitude: point.Lng,
+                latitude: point.Lat,
+                height: point.Alt,
+              }))
+            : [],
+        )
 
         // Close modal and show success message
         showSuccessNotification(`${file.name} loaded successfully`)
@@ -507,46 +522,67 @@ export default function FLA() {
               </ScrollArea>
             </div>
 
-            {/* Graph column */}
-            <div className='w-full h-full pr-4'>
-              <Graph
-                data={chartData}
-                events={logEvents}
-                flightModes={flightModeMessages}
-                graphConfig={
-                  logType === 'dataflash' ? dataflashOptions : fgcsOptions
-                }
-              />
+            <Tabs
+              color={tailwindColors.falconred[100]}
+              className='h-full w-full'
+              keepMounted={false}
+              defaultValue='chart'
+            >
+              <Tabs.List>
+                <Tabs.Tab value='chart'>Chart</Tabs.Tab>
+                <Tabs.Tab value='map' disabled={!gpsData}>
+                  Map
+                </Tabs.Tab>
+              </Tabs.List>
+              <Tabs.Panel value='chart'>
+                {/* Graph column */}
+                <div className='w-full h-full pr-4'>
+                  <Graph
+                    data={chartData}
+                    events={logEvents}
+                    flightModes={flightModeMessages}
+                    graphConfig={
+                      logType === 'dataflash' ? dataflashOptions : fgcsOptions
+                    }
+                  />
 
-              {/* Plots Setup */}
-              <div className='flex gap-4 pt-6 flex-cols'>
-                <div>
-                  <div className='flex flex-row items-center mb-2'>
-                    <h3 className='mt-2 mb-2 text-xl'>Graph setup</h3>
-                    {/* Clear Filters */}
-                    <Button
-                      className='ml-6'
-                      size='xs'
-                      color={tailwindColors.red[500]}
-                      onClick={clearFilters}
-                    >
-                      Clear graph
-                    </Button>
+                  {/* Plots Setup */}
+                  <div className='flex gap-4 pt-6 flex-cols'>
+                    <div>
+                      <div className='flex flex-row items-center mb-2'>
+                        <h3 className='mt-2 mb-2 text-xl'>Graph setup</h3>
+                        {/* Clear Filters */}
+                        <Button
+                          className='ml-6'
+                          size='xs'
+                          color={tailwindColors.red[500]}
+                          onClick={clearFilters}
+                        >
+                          Clear graph
+                        </Button>
+                      </div>
+                      {chartData.datasets.map((item) => (
+                        <Fragment key={item.label}>
+                          <ChartDataCard
+                            item={item}
+                            messageMeans={messageMeans}
+                            colorInputSwatch={colorInputSwatch}
+                            changeColorFunc={changeColor}
+                            removeDatasetFunc={removeDataset}
+                          />
+                        </Fragment>
+                      ))}
+                    </div>
                   </div>
-                  {chartData.datasets.map((item) => (
-                    <Fragment key={item.label}>
-                      <ChartDataCard
-                        item={item}
-                        messageMeans={messageMeans}
-                        colorInputSwatch={colorInputSwatch}
-                        changeColorFunc={changeColor}
-                        removeDatasetFunc={removeDataset}
-                      />
-                    </Fragment>
-                  ))}
                 </div>
-              </div>
-            </div>
+              </Tabs.Panel>
+              <Tabs.Panel value='map'>
+                {/* 3D Map column */}
+                <div className='w-full h-full pr-4'>
+                  <DroneFlightPath gpsData={gpsData} />
+                </div>
+              </Tabs.Panel>
+            </Tabs>
           </div>
         </>
       )}
