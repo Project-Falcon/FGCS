@@ -90,7 +90,11 @@ When cloning the repo for the first time, please install `pre-commit`. This can 
 
 ## Backend
 
-From within the `radio` folder run `pyinstaller --paths .\venv\Lib\site-packages\ --add-data=".\venv\Lib\site-packages\pymavlink\message_definitions\:message_definitions" --add-data=".\venv\Lib\site-packages\pymavlink\:pymavlink" --hidden-import pymavlink .\app.py -n fgcs_backend`. This will create an exe and folder within the `dist/fgcs_backend/` folder.
+From within the `radio` folder run `pyinstaller --paths .\venv\Lib\site-packages\ --add-data=" \venv\Lib\site-packages\pymavlink\message_definitions\:message_definitions" --add-data=".\venv\Lib\site-packages\pymavlink\:pymavlink" --hidden-import pymavlink --hidden-import engineio.async_drivers.threading .\app.py -n fgcs_backend`. This will create an exe and folder within the `dist/fgcs_backend/` folder.
+
+On Mac:
+`pyinstaller --paths ./venv/lib/python3.11/site-packages/ --add-data="./venv/lib/python3.11/site-packages/pymavlink/message_definitions:message_definitions" --add-data="./venv/lib/python3.11/site-packages/pymavlink:pymavlink" --hidden-import pymavlink --hidden-import engineio.async_drivers.threading --windowed --name fgcs_backend ./app.py`. 
+This will create the `dist/fgcs_backend.app/` folder.
 
 ## Frontend
 
