@@ -29,6 +29,19 @@ function getAircraftKey(aircraftType) {
   return null
 }
 
+// Map aircraft type string to aircraft key for FLA
+export function getAircraftKeyFromName(aircraftType) {
+  if (aircraftType === "plane" || aircraftType === "quadplane") {
+    return "plane"
+  }
+
+  if (aircraftType === "copter") {
+    return "copter"
+  }
+
+  return null
+}
+
 export function parseMajorMinorVersion(versionString) {
   const match = String(versionString || "").match(/(\d+)\.(\d+)/)
   if (!match) {

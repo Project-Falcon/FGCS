@@ -9,7 +9,10 @@ import {
   showErrorNotification,
   showSuccessNotification,
 } from "../../helpers/notification"
-import { loadParamDefinitionsForVersion } from "../../helpers/paramDefinitions"
+import {
+  getAircraftKeyFromName,
+  loadParamDefinitionsForVersion,
+} from "../../helpers/paramDefinitions"
 
 function getBitmaskInfo(rawValue, paramDef) {
   const bitmaskDef = paramDef?.Bitmask
@@ -159,11 +162,7 @@ export default function FlaParamsWindow() {
     const handler = (_event, data) => {
       setParams(data.params)
       setFileName(data.fileName)
-      setAircraftKey(
-        data.aircraftType === "plane" || data.aircraftType === "copter"
-          ? data.aircraftType
-          : null,
-      )
+      setAircraftKey(getAircraftKeyFromName(data.aircraftType))
       setFirmwareVersion(data.firmwareVersion ?? null)
     }
     window.ipcRenderer.on("app:send-fla-params", handler)
