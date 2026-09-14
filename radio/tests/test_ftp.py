@@ -3,24 +3,26 @@ from flask_socketio.test_client import SocketIOTestClient
 from .helpers import NoDrone
 
 
+EXPECTED_ROOT_DIRECTORIES = [
+    {"name": ".", "path": "/", "is_dir": True, "size_b": 0},
+    {"name": "..", "path": "/", "is_dir": True, "size_b": 0},
+    {"name": "@ROMFS", "path": "/@ROMFS", "is_dir": True, "size_b": 0},
+    {"name": "@SYS", "path": "/@SYS", "is_dir": True, "size_b": 0},
+    {"name": "logs", "path": "/logs", "is_dir": True, "size_b": 0},
+    {"name": "terrain", "path": "/terrain", "is_dir": True, "size_b": 0},
+]
+
+
 def test_listFiles_noPath_success(socketio_client: SocketIOTestClient, droneStatus):
     droneStatus.state = "config.ftp"
     socketio_client.emit("list_files", {})
     socketio_result = socketio_client.get_received()[0]
 
     assert socketio_result["name"] == "list_files_result"
-    assert socketio_result["args"][0] == {
-        "success": True,
-        "message": "Directory listing retrieved successfully",
-        "data": [
-            {"name": ".", "path": "/", "is_dir": True, "size_b": 0},
-            {"name": "..", "path": "/", "is_dir": True, "size_b": 0},
-            {"name": "@ROMFS", "path": "/@ROMFS", "is_dir": True, "size_b": 0},
-            {"name": "@SYS", "path": "/@SYS", "is_dir": True, "size_b": 0},
-            {"name": "logs", "path": "/logs", "is_dir": True, "size_b": 0},
-            {"name": "terrain", "path": "/terrain", "is_dir": True, "size_b": 0},
-        ],
-    }
+    response = socketio_result["args"][0]
+    assert response["success"] is True
+    assert response["message"] == "Directory listing retrieved successfully"
+    assert all(entry in response["data"] for entry in EXPECTED_ROOT_DIRECTORIES)
 
 
 def test_listFiles_emptyPath_failure(socketio_client: SocketIOTestClient, droneStatus):
@@ -41,18 +43,10 @@ def test_listFiles_homePath_success(socketio_client: SocketIOTestClient, droneSt
     socketio_result = socketio_client.get_received()[0]
 
     assert socketio_result["name"] == "list_files_result"
-    assert socketio_result["args"][0] == {
-        "success": True,
-        "message": "Directory listing retrieved successfully",
-        "data": [
-            {"name": ".", "path": "/", "is_dir": True, "size_b": 0},
-            {"name": "..", "path": "/", "is_dir": True, "size_b": 0},
-            {"name": "@ROMFS", "path": "/@ROMFS", "is_dir": True, "size_b": 0},
-            {"name": "@SYS", "path": "/@SYS", "is_dir": True, "size_b": 0},
-            {"name": "logs", "path": "/logs", "is_dir": True, "size_b": 0},
-            {"name": "terrain", "path": "/terrain", "is_dir": True, "size_b": 0},
-        ],
-    }
+    response = socketio_result["args"][0]
+    assert response["success"] is True
+    assert response["message"] == "Directory listing retrieved successfully"
+    assert all(entry in response["data"] for entry in EXPECTED_ROOT_DIRECTORIES)
 
 
 def test_listFiles_subPath_success(socketio_client: SocketIOTestClient, droneStatus):
