@@ -11,7 +11,11 @@
  *   - findExistingPreset: Function to check for duplicate presets
  */
 import _ from "lodash"
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import {
+  readSettingsSync,
+  writeSettingSync,
+} from "../../helpers/persistedSettings.js"
 
 const dataflashPresetCategories = [
   {
@@ -214,60 +218,88 @@ export function getPresetKeys(logType) {
   return keyMap[logType] || keyMap.dataflash_bin // Default fallback
 }
 
-export function usePresetCategories() {
-  const [presetCategories, setPresetCategories] = useState(
-    initialPresetCategories,
-  )
+const CUSTOM_PRESET_STORAGE = [
+  { storageKey: "customDataflashPresets", categoryKey: "custom_dataflash" },
+  {
+    storageKey: "customFgcsTelemetryPresets",
+    categoryKey: "custom_fgcs_telemetry",
+  },
+  {
+    storageKey: "customMpTelemetryPresets",
+    categoryKey: "custom_mp_telemetry",
+  },
+]
 
-  useEffect(() => {
-    // Load custom presets from localStorage on component mount
-    const customPresetKeys = [
-      {
-        storageKey: "customDataflashPresets",
-        categoryKey: "custom_dataflash",
-      },
-      {
-        storageKey: "customFgcsTelemetryPresets",
-        categoryKey: "custom_fgcs_telemetry",
-      },
-      {
-        storageKey: "customMpTelemetryPresets",
-        categoryKey: "custom_mp_telemetry",
-      },
-    ]
+function toCustomPresetCategory(presets) {
+  return [{ name: "Custom Presets", presets }]
+}
 
-    const updates = {}
-    customPresetKeys.forEach(({ storageKey, categoryKey }) => {
-      const savedPresets = localStorage.getItem(storageKey)
+function persistCustomPresets(storageKey, presets) {
+  if (writeSettingSync(storageKey, presets)) {
+    return
+  }
 
-      let parsedPresets
-      try {
-        parsedPresets = JSON.parse(savedPresets)
+  localStorage.setItem(storageKey, JSON.stringify(presets))
+}
 
-        if (parsedPresets) {
-          updates[categoryKey] = [
-            {
-              name: "Custom Presets",
-              presets: JSON.parse(savedPresets),
-            },
-          ]
-        }
-      } catch (error) {
-        console.warn(
-          `Failed to parse custom presets from localStorage key "${storageKey}". Clearing corrupted data.`,
-          error,
-        )
-        localStorage.removeItem(storageKey)
-      }
-    })
+function readMigratedLocalStoragePresets(storageKey, canWriteToDisk) {
+  const stored = localStorage.getItem(storageKey)
 
-    if (Object.keys(updates).length > 0) {
-      setPresetCategories((prevCategories) => ({
-        ...prevCategories,
-        ...updates,
-      }))
+  if (stored === null) {
+    return null
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(stored)
+  } catch (error) {
+    console.warn(
+      `Failed to parse custom presets from localStorage key "${storageKey}". Clearing corrupted data.`,
+      error,
+    )
+    localStorage.removeItem(storageKey)
+    return null
+  }
+
+  if (!Array.isArray(parsed)) {
+    return null
+  }
+
+  // Only drop the localStorage copy once the move to disk is confirmed
+  if (canWriteToDisk && writeSettingSync(storageKey, parsed)) {
+    localStorage.removeItem(storageKey)
+  }
+
+  return parsed
+}
+
+function loadCustomPresetCategories() {
+  const { readable, settings } = readSettingsSync()
+  const categories = {}
+
+  CUSTOM_PRESET_STORAGE.forEach(({ storageKey, categoryKey }) => {
+    const fromDisk = readable ? settings[storageKey] : undefined
+
+    if (Array.isArray(fromDisk)) {
+      categories[categoryKey] = toCustomPresetCategory(fromDisk)
+      return
     }
-  }, [])
+
+    const migrated = readMigratedLocalStoragePresets(storageKey, readable)
+
+    if (migrated !== null) {
+      categories[categoryKey] = toCustomPresetCategory(migrated)
+    }
+  })
+
+  return categories
+}
+
+export function usePresetCategories() {
+  const [presetCategories, setPresetCategories] = useState(() => ({
+    ...initialPresetCategories,
+    ...loadCustomPresetCategories(),
+  }))
 
   function saveCustomPreset(preset, logType) {
     const { categoryKey, storageKey } = getPresetKeys(logType)
@@ -277,15 +309,10 @@ export function usePresetCategories() {
         ...prevCategories[categoryKey][0].presets,
         preset,
       ]
-      localStorage.setItem(storageKey, JSON.stringify(updatedCustomPresets))
+      persistCustomPresets(storageKey, updatedCustomPresets)
       return {
         ...prevCategories,
-        [categoryKey]: [
-          {
-            name: "Custom Presets",
-            presets: updatedCustomPresets,
-          },
-        ],
+        [categoryKey]: toCustomPresetCategory(updatedCustomPresets),
       }
     })
   }
@@ -297,15 +324,10 @@ export function usePresetCategories() {
       const updatedCustomPresets = prevCategories[
         categoryKey
       ][0].presets.filter((preset) => preset.name !== presetName)
-      localStorage.setItem(storageKey, JSON.stringify(updatedCustomPresets))
+      persistCustomPresets(storageKey, updatedCustomPresets)
       return {
         ...prevCategories,
-        [categoryKey]: [
-          {
-            name: "Custom Presets",
-            presets: updatedCustomPresets,
-          },
-        ],
+        [categoryKey]: toCustomPresetCategory(updatedCustomPresets),
       }
     })
   }

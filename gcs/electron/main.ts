@@ -199,7 +199,12 @@ interface Settings {
 
 let userSettings: Settings | null = null
 
-const STORE_OWNED_SETTING_KEYS = ["selectedDisplayTelemetry"]
+const STORE_OWNED_SETTING_KEYS = [
+  "selectedDisplayTelemetry",
+  "customDataflashPresets",
+  "customFgcsTelemetryPresets",
+  "customMpTelemetryPresets",
+]
 
 // Merge incoming settings with store-owned settings
 function withStoreOwnedSettings(incoming: Settings): Settings {
