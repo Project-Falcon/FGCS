@@ -225,11 +225,13 @@ const missionInfoSlice = createSlice({
 
       if (index === -1) return
 
+      const hasClickedPosition = Number.isFinite(x) && Number.isFinite(y)
+
       const drawingItem = newMissionItem(
-        x,
-        y,
+        hasClickedPosition ? x : 0,
+        hasClickedPosition ? y : 0,
         state.targetInfo,
-        newItemAltitude(state),
+        hasClickedPosition ? newItemAltitude(state) : 0,
       )
       drawingItem.seq = index + 1
       drawingItem.command = { mission: 16, fence: 5004, rally: 5100 }[
