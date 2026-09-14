@@ -37,6 +37,16 @@
       "type": "boolean",
       "display": "Experimental Developer Features",
       "description": "These may be unstable and can cause unexpected bugs or crashes."
+    },
+    "gcsSystemId": {
+      "description": "The MAVLink system ID this GCS identifies itself with. Leave at 255 unless another GCS is on the same network. Applied when you next connect.",
+      "default": 255,
+      "type": "number",
+      "range": [
+        1,
+        255
+      ],
+      "display": "GCS System ID"
     }
   },
   "Dashboard": {

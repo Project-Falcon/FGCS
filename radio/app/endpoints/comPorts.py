@@ -8,7 +8,12 @@ from typing_extensions import TypedDict
 
 import app.droneStatus as droneStatus
 from app import logger, socketio
-from app.drone import Drone
+from app.drone import (
+    DEFAULT_GCS_SYSTEM_ID,
+    MAX_GCS_SYSTEM_ID,
+    MIN_GCS_SYSTEM_ID,
+    Drone,
+)
 from app.utils import (
     droneConnectStatusCb,
     droneErrorCb,
@@ -23,6 +28,7 @@ class ConnectionDataType(TypedDict):
     baud: int
     connectionType: str
     forwarding_address: Optional[str]
+    gcsSystemId: Optional[int]
 
 
 class LinkStatsType(TypedDict):
@@ -116,6 +122,21 @@ def connectToDrone(data: ConnectionDataType) -> None:
         droneStatus.drone = None
         return
 
+    raw_gcs_system_id = data.get("gcsSystemId")
+    gcs_system_id = (
+        DEFAULT_GCS_SYSTEM_ID if raw_gcs_system_id is None else raw_gcs_system_id
+    )
+
+    if not Drone.checkGcsSystemIdValid(gcs_system_id):
+        socketio.emit(
+            "connection_error",
+            {
+                "message": f"Expected a GCS system ID between {MIN_GCS_SYSTEM_ID} and {MAX_GCS_SYSTEM_ID}, received {gcs_system_id!r}."
+            },
+        )
+        droneStatus.drone = None
+        return
+
     forwarding_address = data.get("forwardingAddress", None)
     if forwarding_address is not None and not isinstance(forwarding_address, str):
         socketio.emit(
@@ -155,6 +176,7 @@ def connectToDrone(data: ConnectionDataType) -> None:
             port,
             baud=baud,
             forwarding_address=forwarding_address,
+            gcs_system_id=gcs_system_id,
             droneErrorCb=droneErrorCb,
             droneDisconnectCb=disconnectFromDrone,
             droneConnectStatusCb=droneConnectStatusCb,

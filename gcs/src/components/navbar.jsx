@@ -73,7 +73,12 @@ import { selectIsConnectedToSocket } from "../redux/slices/socketSlice.js"
 // Styling imports
 import { useEffect } from "react"
 import { twMerge } from "tailwind-merge"
+import {
+  DEFAULT_GCS_SYSTEM_ID,
+  normaliseGcsSystemId,
+} from "../helpers/gcsSystemId.js"
 import { showErrorNotification } from "../helpers/notification.js"
+import { useSettings } from "../helpers/settings.js"
 
 // Modals
 import ConnectionProgress from "./connectionProgress.jsx"
@@ -82,6 +87,7 @@ import SimulationModal from "./toolbar/simulationModal.jsx"
 export default function Navbar() {
   // Redux
   const dispatch = useDispatch()
+  const { getSetting } = useSettings()
   const openedModal = useSelector(selectConnectionModal)
   const forwardingModalOpened = useSelector(selectForwardingAddressModalOpened)
 
@@ -118,6 +124,14 @@ export default function Navbar() {
     dispatch(setConnectionModal(false))
   }
 
+  function getGcsSystemId() {
+    const configured = getSetting("General.gcsSystemId")
+
+    return configured === null
+      ? DEFAULT_GCS_SYSTEM_ID
+      : normaliseGcsSystemId(configured)
+  }
+
   function connectToDrone(type) {
     if (type === ConnectionType.Serial) {
       dispatch(
@@ -126,6 +140,7 @@ export default function Navbar() {
           baud: parseInt(selectedBaudRate),
           connectionType: type,
           forwardingAddress: forwardingAddress,
+          gcsSystemId: getGcsSystemId(),
         }),
       )
     } else if (type === ConnectionType.Network) {
@@ -148,6 +163,7 @@ export default function Navbar() {
           baud: 115200,
           connectionType: type,
           forwardingAddress: forwardingAddress,
+          gcsSystemId: getGcsSystemId(),
         }),
       )
     } else {

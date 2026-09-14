@@ -1,7 +1,7 @@
 import sys
 
 import pytest
-from app.drone import Drone
+from app.drone import MAX_GCS_SYSTEM_ID, MIN_GCS_SYSTEM_ID, Drone
 from flask_socketio.test_client import SocketIOTestClient
 from serial.tools import list_ports
 
@@ -164,6 +164,33 @@ def test_connectToDrone_badBaud() -> None:
         "connect_to_drone",
         {"connectionType": connectionType, "port": VALID_DRONE_PORT, "baud": "9600"},
     ) == {"message": "Expected integer value for baud, received str."}
+
+
+def test_connectToDrone_badGcsSystemId() -> None:
+    global VALID_DRONE_PORT
+
+    connectionType = (
+        "network" if VALID_DRONE_PORT.startswith(("tcp", "udp")) else "serial"
+    )
+
+    def connect_with(system_id: object) -> dict:
+        return send_and_receive(
+            "connect_to_drone",
+            {
+                "connectionType": connectionType,
+                "port": VALID_DRONE_PORT,
+                "baud": 115200,
+                "gcsSystemId": system_id,
+            },
+        )
+
+    # System ID 0 is reserved for broadcast and 256 is past the one byte field.
+    # None is absent from this list on purpose: an omitted or null field means
+    # the client did not express a preference and falls back to the default.
+    for invalid in [0, 256, -1, "255", 255.0, True]:
+        assert connect_with(invalid) == {
+            "message": f"Expected a GCS system ID between {MIN_GCS_SYSTEM_ID} and {MAX_GCS_SYSTEM_ID}, received {invalid!r}."
+        }, f"{invalid!r} should be rejected as a GCS system ID"
 
 
 def test_disconnectFromDrone(socketio_client: SocketIOTestClient) -> None:
