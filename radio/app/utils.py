@@ -5,9 +5,8 @@ from typing import Any, List, Optional, Union
 
 from pymavlink import mavutil
 from serial.tools import list_ports
-from typing_extensions import NotRequired, TypedDict
 
-from app.customTypes import Number, VehicleType
+from app.customTypes import VehicleType
 
 from . import socketio
 
@@ -147,22 +146,6 @@ def droneErrorCb(msg: Any) -> None:
         msg: The error message to send to the client
     """
     socketio.emit("drone_error", {"message": msg})
-
-
-class ConnectionDataType(TypedDict):
-    message: str
-    progress: Number
-    sub_message: NotRequired[str]
-
-
-def droneConnectStatusCb(msg: ConnectionDataType) -> None:
-    """
-    Send drone connect status updates to the socket
-
-    Args:
-        msg: The connect message to send to the client
-    """
-    socketio.emit("drone_connect_status", msg)
 
 
 def notConnectedError(action: Optional[str] = None) -> None:
