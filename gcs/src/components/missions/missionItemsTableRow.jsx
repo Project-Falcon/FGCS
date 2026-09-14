@@ -8,8 +8,14 @@ import {
   Select,
   TableTd,
   TableTr,
+  Tooltip,
 } from "@mantine/core"
-import { IconArrowDown, IconArrowUp, IconTrash } from "@tabler/icons-react"
+import {
+  IconArrowDown,
+  IconArrowUp,
+  IconRowInsertBottom,
+  IconTrash,
+} from "@tabler/icons-react"
 import { coordToInt, intToCoord } from "../../helpers/dataFormatters"
 import {
   COMMONLY_USED_MISSION_TABLE_LABELS,
@@ -22,11 +28,11 @@ import {
 import { useDispatch, useSelector } from "react-redux"
 import { selectAircraftType } from "../../redux/slices/droneInfoSlice"
 import {
+  insertDrawingItemAfter,
   removeDrawingItem,
   reorderDrawingItem,
   selectDrawingMissionItemByIdx,
   selectHoveredMissionItemSeq,
-  selectSelectedMissionItemId,
   setHoveredMissionItemSeq,
   setSelectedMissionItemId,
   updateDrawingItem,
@@ -69,8 +75,6 @@ export default function MissionItemsTableRow({ missionItemIndex, rowMetrics }) {
   )
   const hoveredMissionItemSeq = useSelector(selectHoveredMissionItemSeq)
   const isHovered = hoveredMissionItemSeq === missionItem.seq
-  const selectedMissionItemId = useSelector(selectSelectedMissionItemId)
-  const isSelected = selectedMissionItemId === missionItem.id
 
   // Commonly used section
   const commonlyUsedTag = "-com-used"
@@ -130,13 +134,7 @@ export default function MissionItemsTableRow({ missionItemIndex, rowMetrics }) {
       onMouseLeave={() => dispatch(setHoveredMissionItemSeq(null))}
       onClick={() => dispatch(setSelectedMissionItemId(missionItem.id))}
       onFocus={() => dispatch(setSelectedMissionItemId(missionItem.id))}
-      className={
-        isHovered
-          ? "!bg-falcongrey-600"
-          : isSelected
-            ? "!bg-falcongrey-700"
-            : undefined
-      }
+      className={isHovered ? "!bg-falcongrey-600" : undefined}
     >
       <TableTd>{missionItem.seq}</TableTd>
       <TableTd>
@@ -231,28 +229,45 @@ export default function MissionItemsTableRow({ missionItemIndex, rowMetrics }) {
       </TableTd>
       <TableTd className="h-full">
         <div className="flex flex-row gap-2">
-          <ActionIcon
-            onClick={() =>
-              dispatch(
-                reorderDrawingItem({ id: missionItem.id, increment: -1 }),
-              )
-            }
-          >
-            <IconArrowUp size={20} />
-          </ActionIcon>
-          <ActionIcon
-            onClick={() =>
-              dispatch(reorderDrawingItem({ id: missionItem.id, increment: 1 }))
-            }
-          >
-            <IconArrowDown size={20} />
-          </ActionIcon>
-          <ActionIcon
-            onClick={() => dispatch(removeDrawingItem(missionItem.id))}
-            color="red"
-          >
-            <IconTrash size={20} />
-          </ActionIcon>
+          <Tooltip label="Move waypoint up" openDelay={400}>
+            <ActionIcon
+              onClick={() =>
+                dispatch(
+                  reorderDrawingItem({ id: missionItem.id, increment: -1 }),
+                )
+              }
+            >
+              <IconArrowUp size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Move waypoint down" openDelay={400}>
+            <ActionIcon
+              onClick={() =>
+                dispatch(
+                  reorderDrawingItem({ id: missionItem.id, increment: 1 }),
+                )
+              }
+            >
+              <IconArrowDown size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Insert waypoint below" openDelay={400}>
+            <ActionIcon
+              onClick={() =>
+                dispatch(insertDrawingItemAfter({ afterId: missionItem.id }))
+              }
+            >
+              <IconRowInsertBottom size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete waypoint" openDelay={400}>
+            <ActionIcon
+              onClick={() => dispatch(removeDrawingItem(missionItem.id))}
+              color="red"
+            >
+              <IconTrash size={20} />
+            </ActionIcon>
+          </Tooltip>
         </div>
       </TableTd>
     </TableTr>
