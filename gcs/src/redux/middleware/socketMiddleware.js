@@ -34,6 +34,7 @@ import {
 
 // socket factory
 import { dataFormatters } from "../../helpers/dataFormatters.js"
+import { readGcsSystemIdSync } from "../../helpers/gcsSystemId.js"
 import { isGlobalFrameHomeCommand } from "../../helpers/filterMissions.js"
 import {
   EKF_STATUS_WARNING_LEVEL,
@@ -637,6 +638,7 @@ const socketMiddleware = (store) => {
                 baud: 115200,
                 connectionType: ConnectionType.Network,
                 forwardingAddress: storeState.droneConnection.forwardingAddress,
+                gcsSystemId: readGcsSystemIdSync(),
               }),
             )
             store.dispatch(setConnectedToSimulator(true))

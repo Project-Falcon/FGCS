@@ -53,6 +53,10 @@ DATASTREAM_RATES = {
     mavutil.mavlink.MAV_DATA_STREAM_EXTRA3: 1,
 }
 
+DEFAULT_GCS_SYSTEM_ID = 255
+MIN_GCS_SYSTEM_ID = 1
+MAX_GCS_SYSTEM_ID = 255
+
 VALID_BAUDRATES = [
     1200,
     4800,
@@ -80,6 +84,7 @@ class Drone:
         baud: int = 57600,
         logger: Logger = getLogger("fgcs"),
         forwarding_address: Optional[str] = None,
+        gcs_system_id: int = DEFAULT_GCS_SYSTEM_ID,
         droneErrorCb: Optional[Callable] = None,
         droneDisconnectCb: Optional[Callable] = None,
         droneConnectStatusCb: Optional[Callable] = None,
@@ -93,6 +98,7 @@ class Drone:
         Args:
             port (str): The port to connect to the drone.
             baud (int, optional): The baud rate for the connection. Defaults to 57600.
+            gcs_system_id (int, optional): The MAVLink system ID this GCS identifies itself with. Defaults to 255.
             droneErrorCb (Optional[Callable], optional): Callback function for drone errors. Defaults to None.
             droneDisconnectCb (Optional[Callable], optional): Callback function for drone disconnection. Defaults to None.
             droneConnectStatusCb (Optional[Callable], optional): Callback function for drone connection providing an update as the drone connects. Defaults to None.
@@ -102,6 +108,7 @@ class Drone:
         """
         self.port = port
         self.baud = baud
+        self.gcs_system_id = gcs_system_id
         self.logger = logger
         self.droneErrorCb = droneErrorCb
         self.droneDisconnectCb = droneDisconnectCb
@@ -131,13 +138,20 @@ class Drone:
             )
             return
 
+        if not Drone.checkGcsSystemIdValid(gcs_system_id):
+            self.connectionError = (
+                f"{gcs_system_id} is an invalid GCS system ID. "
+                f"Valid system IDs are {MIN_GCS_SYSTEM_ID} to {MAX_GCS_SYSTEM_ID}."
+            )
+            return
+
         try:
             self.sendConnectionStatusUpdate(0)
             # Source system and component set to GCS values
             self.master: mavutil.mavserial = mavutil.mavlink_connection(
                 port,
                 baud=baud,
-                source_system=255,
+                source_system=gcs_system_id,
                 source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER,
             )
         except Exception as e:
@@ -450,6 +464,14 @@ class Drone:
     @staticmethod
     def checkBaudrateValid(baud: int) -> bool:
         return baud in VALID_BAUDRATES
+
+    @staticmethod
+    def checkGcsSystemIdValid(system_id: int) -> bool:
+        return (
+            isinstance(system_id, int)
+            and not isinstance(system_id, bool)
+            and MIN_GCS_SYSTEM_ID <= system_id <= MAX_GCS_SYSTEM_ID
+        )
 
     @staticmethod
     def getValidBaudrates() -> list[int]:
@@ -1096,8 +1118,9 @@ class Drone:
             response = self.wait_for_message(
                 "COMMAND_ACK",
                 self.controller_id,
-                condition_func=lambda msg: msg.command
-                == mavutil.mavlink.MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN,
+                condition_func=lambda msg: (
+                    msg.command == mavutil.mavlink.MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN
+                ),
             )
 
             self.sending_command_lock.release()
